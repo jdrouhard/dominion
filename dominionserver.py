@@ -66,6 +66,8 @@ class CLIUserService:
 
     @defer.inlineCallbacks
     def getCardInstance(self, validChoices):
+        if not validChoices:
+            defer.returnValue(None)
         prompt = ""
         for i, card in enumerate(validChoices):
             prompt += "%d: %s" % (i+1, repr(card)) + "\n"

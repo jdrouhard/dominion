@@ -67,11 +67,12 @@ class CouncilRoom(Action):
         self.owner.buys += 1
         self.owner.addToLog("getting +1 buy and drawing %d cards" % len(drawnCards))
         for player in self.owner.game.players:
-            drawnCards = player.draw(1)
-            if drawnCards:
-                self.owner.addToLog("%s draws 1 card")
-            else:
-                self.owner.addtoLog("%s draws no cards")
+            if player != self.owner:
+                drawnCards = player.draw(1)
+                if drawnCards:
+                    self.owner.addToLog("%s draws 1 card" % player.name)
+                else:
+                    self.owner.addtoLog("%s draws no cards" % player.name)
 
 class Feast(Action):
     cost = 4
@@ -152,15 +153,16 @@ class Mine(Action):
         #TODO: utilize the userservice object here for interaction
         self.owner.userService.sendMessage("Choose a treasure to upgrade:")
         cardToUpgrade = yield self.owner.userService.chooseCardFromHand(Treasure)
-        #self.owner.userService.sendMessage("Upgrading " + repr(cardToUpgrade))
-        availableCoins = cardToUpgrade.getCost() + 3
-        self.owner.trashFromHand(cardToUpgrade)
-        self.owner.addToLog("trashing a %s." % repr(cardToUpgrade))
-        self.owner.userService.sendMessage("Choose a treasure to upgrade to:")
-        cardToGainName = yield self.owner.userService.chooseCardFromSupply(Treasure, availableCoins)
-        cardToGain = self.owner.game.getCardFromSupply(cardToGainName)
-        self.owner.gainInHand(cardToGain)
-        self.owner.addToLog("gaining a %s in hand." % repr(cardToGain))
+        if cardToUpgrade:
+            #self.owner.userService.sendMessage("Upgrading " + repr(cardToUpgrade))
+            availableCoins = cardToUpgrade.getCost() + 3
+            self.owner.trashFromHand(cardToUpgrade)
+            self.owner.addToLog("trashing a %s." % repr(cardToUpgrade))
+            self.owner.userService.sendMessage("Choose a treasure to upgrade to:")
+            cardToGainName = yield self.owner.userService.chooseCardFromSupply(Treasure, availableCoins)
+            cardToGain = self.owner.game.getCardFromSupply(cardToGainName)
+            self.owner.gainInHand(cardToGain)
+            self.owner.addToLog("gaining a %s in hand." % repr(cardToGain))
 
 class Moat(Action, Reaction):
     cost = 2
@@ -192,14 +194,15 @@ class Remodel(Action):
     def doAction(self):
         self.owner.userService.sendMessage("Choose a card to trash:")
         cardToRemodel = yield self.owner.userService.chooseCardFromHand(Card)
-        costOfCard = cardToRemodel.cost
-        self.owner.trashFromHand(cardToRemodel)
-        self.owner.addToLog("trashing a %s." % repr(cardToRemodel))
-        self.owner.userService.sendMessage("Choose a card to gain:")
-        cardToGainName = yield self.owner.userService.chooseCardFromSupply(Card, costOfCard+2)
-        cardToGain = self.owner.game.getCardFromSupply(cardToGainName)
-        self.owner.gainToDiscard(cardToGain)
-        self.owner.addToLog("gaining a %s." % repr(cardToGain))
+        if cardToRemodel:
+            costOfCard = cardToRemodel.cost
+            self.owner.trashFromHand(cardToRemodel)
+            self.owner.addToLog("trashing a %s." % repr(cardToRemodel))
+            self.owner.userService.sendMessage("Choose a card to gain:")
+            cardToGainName = yield self.owner.userService.chooseCardFromSupply(Card, costOfCard+2)
+            cardToGain = self.owner.game.getCardFromSupply(cardToGainName)
+            self.owner.gainToDiscard(cardToGain)
+            self.owner.addToLog("gaining a %s." % repr(cardToGain))
 
 class Smithy(Action):
     cost = 4
@@ -225,10 +228,17 @@ class ThroneRoom(Action):
         if (len([x for x in self.owner.hand if isinstance(x, Action)]) > 0):
             self.owner.userService.sendMessage("Choose an action card to play twice:")
             card = yield self.owner.userService.chooseCardFromHand(Action)
-            self.owner.addToLog("and plays a %s." % repr(card))
-            yield card.doAction()
-            self.owner.addToLog("and plays the %s again." % repr(card))
-            yield card.doAction()
+            if card:
+                self.owner.addToLog("and plays a %s." % repr(card))
+                self.owner.pushLogLevel()
+                yield card.doAction()
+                self.owner.popLogLevel()
+                self.owner.addToLog("and plays the %s again." % repr(card))
+                self.owner.pushLogLevel()
+                yield card.doAction()
+                self.owner.popLogLevel()
+                self.hand.remove(card)
+                self.played.append(card)
 
 class Village(Action):
     cost = 3
@@ -236,7 +246,7 @@ class Village(Action):
     def doAction(self):
         self.owner.actions += 2
         drawnCards = self.owner.draw(1)
-        self.owner.addToLog("getting +2 actions and drawing %d card" % len(drawnCards))
+        self.owner.addToLog("getting +2 actions and drawing %d card." % len(drawnCards))
 
 class Witch(Attack):
     def doAction(self):
@@ -249,7 +259,7 @@ class Woodcutter(Action):
     def doAction(self):
         self.owner.buys += 1
         self.owner.coins += 2
-        self.owner.addToLog("getting +1 buy and +$2")
+        self.owner.addToLog("getting +1 buy and +$2.")
 
 class Workshop(Action):
     cost = 3
@@ -260,4 +270,4 @@ class Workshop(Action):
         cardToGainName = yield self.owner.userService.chooseCardFromSupply(Card, 4)
         cardToGain = self.owner.game.getCardFromSupply(cardToGainName)
         self.owner.gainToDiscard(cardToGain)
-        self.owner.addToLog("gaining a %s" % repr(cardToGain))
+        self.owner.addToLog("gaining a %s." % repr(cardToGain))
