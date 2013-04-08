@@ -5,18 +5,20 @@ class Adventurer(Action):
     cost = 6
 
     def doAction(self):
-        treasureCardsFound = 0
         revealedCards = []
-        while treasureCardsFound < 2 and (self.owner.drawdeck or self.owner.discard):
+        treasureCards = []
+        discardedCards = []
+        while len(treasureCards) < 2 and (self.owner.drawdeck or self.owner.discard):
             revealedCard = self.owner.draw(1, False)
             if revealedCard:
                 revealedCard = revealedCard[0]
                 if isinstance(revealedCard, Treasure):
-                    #treasureCards.append(card)
-                    treasureCardsFound += 1
+                    treasureCards.append(revealedCard)
+                else:
+                    discardedCards.append(revealedCard)
                 revealedCards.append(revealedCard)
-        discardedCards = [x for x in revealedCards if not isinstance(x, Treasure)]
-        treasureCards = [x for x in revealedCards if isinstance(x, Treasure)]
+
+        #TODO: discarding can trigger a reaction
         self.owner.discard.extend(discardedCards)
         self.owner.hand.extend(treasureCards)
         self.owner.addToLog("revealing %s." % (', '.join([repr(x) for x in revealedCards])))
@@ -40,12 +42,13 @@ class Cellar(Action):
             numDiscard = int(numDiscard)
         cards = yield self.owner.userService.chooseCardsFromHand(Card, numDiscard)
         for card in cards:
+            #TODO: discarding can trigger a reaction
             self.owner.hand.remove(card)
             self.owner.discard.append(card)
 
         drawnCards = self.owner.draw(numDiscard)
 
-        self.owner.addToLog("discarding %d cards and drawing +%d cards" % (numDiscard, len(drawnCards)))
+        self.owner.addToLog("discarding %d cards and drawing %d cards" % (numDiscard, len(drawnCards)))
 
 class Chancellor(Action):
     cost = 3
@@ -257,6 +260,9 @@ class ThroneRoom(Action):
                 self.owner.pushLogLevel()
                 yield card.doAction()
                 self.owner.popLogLevel()
+
+                #TODO: do this through methods on the Player object
+                # (Feast doesn't work yet)
                 self.owner.hand.remove(card)
                 self.owner.played.append(card)
 
