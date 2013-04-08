@@ -8,9 +8,9 @@ class Adventurer(Action):
         treasureCardsFound = 0
         revealedCards = []
         while treasureCardsFound < 2 and (self.owner.drawdeck or self.owner.discard):
-            revealedCards = self.owner.draw(1, False)
-            if revealedCards:
-                revealedCard = revealedCards[0]
+            revealedCard = self.owner.draw(1, False)
+            if revealedCard:
+                revealedCard = revealedCard[0]
                 if isinstance(revealedCard, Treasure):
                     #treasureCards.append(card)
                     treasureCardsFound += 1
@@ -22,8 +22,6 @@ class Adventurer(Action):
         self.owner.addToLog("revealing %s." % (', '.join([repr(x) for x in revealedCards])))
         if discardedCards:
             self.owner.addToLog("discarding %s." % (', '.join([repr(x) for x in discardedCards])))
-        else:
-            self.owner.addToLog("discarding nothing.")
         self.owner.addToLog("putting %s into the hand." % (', '.join([repr(x) for x in treasureCards])))
 
 class Bureaucrat(Attack):

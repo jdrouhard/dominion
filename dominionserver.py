@@ -310,6 +310,7 @@ class Menu:
     def endTurn(self, player):
         """End turn"""
         self.game.gameManager.endTurn()
+        self.game.sendToAll(player.flushLog())
 
     def showSummary(self):
         winners = self.game.gameManager.getWinners()

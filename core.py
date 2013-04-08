@@ -197,7 +197,7 @@ class Player:
             self.discard[:] = []
             random.shuffle(self.drawdeck)
             self.addToLog("(%s reshuffles.)" % self.name)
-            drawnCards.append(self.draw(remaining))
+            drawnCards.extend(self.draw(remaining, placeInHand))
             return drawnCards
         else:
             drawnCards = self.drawdeck[:number]
