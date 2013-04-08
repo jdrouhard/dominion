@@ -179,7 +179,7 @@ class Player:
         self.buys = 1
         self.coins = 0
 
-        self.logBuffer = ""
+        self.logBuffer = []
         self.logLevel = ""
 
     def __repr__(self):
@@ -244,6 +244,7 @@ class Player:
             yield self.gainToDiscard(card)
             self.coins -= card.getCost()
             self.buys -= 1
+            self.addToLog("%s buys a %s" % (self.name, repr(card)))
             if self.buys == 0:
                 self.userService.noBuysRemain()
             defer.returnValue(True)
@@ -262,7 +263,7 @@ class Player:
         self.draw(5)
 
         self.logLevel = ''
-        self.logBuffer = ''
+        #self.logBuffer = ''
 
     def updateScore(self):
         self.score = 0
@@ -315,13 +316,13 @@ class Player:
         defer.returnValue(shouldTrash)
 
     def addToLog(self, message):
-        self.logBuffer += self.logLevel + message + "\n"
+        self.logBuffer.append(self.logLevel + message)
 
     def flushLog(self):
         temp = self.logBuffer
-        self.logBuffer = ""
+        self.logBuffer = []
         self.logLevel = ""
-        return temp
+        return '\n'.join(temp)
 
     def pushLogLevel(self):
         self.logLevel += "... "

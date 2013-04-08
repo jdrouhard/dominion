@@ -243,6 +243,8 @@ class Menu:
             yield self._options[option](player)
         except OptionCancelled:
             pass
+        except Exception as e:
+            print e
 
     @defer.inlineCallbacks
     def playCard(self, player):
@@ -250,9 +252,11 @@ class Menu:
         card = yield player.userService.chooseCardFromHand((Action, Treasure))
         self.game.sendToAll("%s plays a %s." % (player, repr(card)))
         played = yield player.play(card)
-        self.game.sendToAll(player.flushLog())
-        #if played:
+        if played:
             #self.game.sendToAll("%s played %s" % (player, repr(card)))
+            self.game.sendToAll(player.flushLog())
+        else:
+            player.flushLog()
 
     def playTreasures(self, player):
         """Play all treasure cards"""
@@ -262,7 +266,7 @@ class Menu:
             if isinstance(card, Treasure):
                 cardsPlayed[repr(card)] += 1
                 player.play(card)
-        message = "%s played %s" % (player, ', '.join(["%d %ss" % (x, y) for y, x in cardsPlayed.iteritems()]))
+        message = "%s plays %s." % (player, ', '.join(["%d %ss" % (x, y) for y, x in cardsPlayed.iteritems()]))
         self.game.sendToAll(message)
         #self.game.sendToAll(player.flushLog())
         player.flushLog()
@@ -273,8 +277,8 @@ class Menu:
         cardName = yield player.userService.chooseCardForBuy()
         bought = yield player.buy(cardName)
         self.game.sendToAll(player.flushLog())
-        if bought:
-            self.game.sendToAll("%s buys a %s" % (player, cardName))
+        #if bought:
+            #self.game.sendToAll("%s buys a %s" % (player, repr(self.game.gameManager.cardFactory.newCard(cardName))))
 
     def showHand(self, player):
         """Show hand"""

@@ -118,7 +118,7 @@ class Library(Action):
         while len(self.owner.hand) < 7 and (self.owner.drawdeck or self.owner.discard):
             revealedCards = self.owner.draw(1, False)
             if revealedCards:
-                revealedCard = revealedCard[0]
+                revealedCard = revealedCards[0]
                 if isinstance(revealedCard, Action):
                     setAside = yield self.owner.userService.getYesNoChoice("Set aside %s?" % revealedCard)
                     if setAside:
@@ -237,8 +237,8 @@ class ThroneRoom(Action):
                 self.owner.pushLogLevel()
                 yield card.doAction()
                 self.owner.popLogLevel()
-                self.hand.remove(card)
-                self.played.append(card)
+                self.owner.hand.remove(card)
+                self.owner.played.append(card)
 
 class Village(Action):
     cost = 3
