@@ -179,6 +179,9 @@ class Player:
         self.buys = 1
         self.coins = 0
 
+        self.logBuffer = ""
+        self.logLevel = ""
+
     def __repr__(self):
         return self.name
 
@@ -193,7 +196,9 @@ class Player:
             self.drawdeck[:] = self.discard[:]
             self.discard[:] = []
             random.shuffle(self.drawdeck)
-            return drawnCards.append(self.draw(remaining))
+            self.addToLog("(%s reshuffles.)" % self.name)
+            drawnCards.append(self.draw(remaining))
+            return drawnCards
         else:
             drawnCards = self.drawdeck[:number]
             if placeInHand:
@@ -207,7 +212,9 @@ class Player:
         if self.turnphase == "ACTION" and isinstance(card, Action) and self.actions > 0:
             self.played.append(card)
             self.hand.remove(card)
+            self.pushLogLevel()
             yield card.doAction()
+            self.popLogLevel()
             shouldTrash = False
             try:
                 shouldTrash = card.markedForTrash
@@ -254,20 +261,14 @@ class Player:
         self.coins = 0
         self.draw(5)
 
+        self.logLevel = ''
+        self.logBuffer = ''
+
     def updateScore(self):
         self.score = 0
         for card in self.deck:
             if isinstance(card, Victory):
                 self.score += card.getScore()
-
-    def addActions(self, number):
-        self.actions += number
-
-    def addCoins(self, number):
-        self.coins += number
-
-    def addBuys(self, number):
-        self.buys += number
 
     @defer.inlineCallbacks
     def gainInHand(self, card):
@@ -313,8 +314,20 @@ class Player:
             self.game.trash.append(card)
         defer.returnValue(shouldTrash)
 
+    def addToLog(self, message):
+        self.logBuffer += self.logLevel + message + "\n"
 
+    def flushLog(self):
+        temp = self.logBuffer
+        self.logBuffer = ""
+        self.logLevel = ""
+        return temp
 
+    def pushLogLevel(self):
+        self.logLevel += "... "
+
+    def popLogLevel(self):
+        self.logLevel = self.logLevel[:-4]
 
 class GameManager:
     def __init__(self, players):

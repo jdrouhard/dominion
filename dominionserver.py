@@ -189,20 +189,6 @@ class Game(Viewable):
         for user, player in self.users.iteritems():
             player.userService = CLIUserService(self.gameManager, user.remote, player)
 
-        #cards = {
-                #"Mine": 10,
-                #"Village": 10,
-                #"Smithy": 10,
-                #"Market": 10,
-                #"Festival": 10,
-                #"Feast": 10,
-                #"Chancellor": 10,
-                #"Laboratory": 10,
-                #"Gardens": 8,
-                #"CouncilRoom": 10
-                #}
-
-        #self.gameManager.setup(cards)
         self.gameManager.setup()
 
         self.menu = Menu(self)
@@ -223,7 +209,6 @@ class Game(Viewable):
                 self.sendToAll("\n------------------\n\n%s's turn!\nTurn: %d" % (player, player.turn))
                 prevPlayer = player
 
-            #showHand(player)
             self.menu.showHand(player)
             yield self.menu.handle_options(player)
 
@@ -261,9 +246,11 @@ class Menu:
     def playCard(self, player):
         """Play card"""
         card = yield player.userService.chooseCardFromHand((Action, Treasure))
+        self.game.sendToAll("%s plays a %s." % (player, repr(card)))
         played = yield player.play(card)
-        if played:
-            self.game.sendToAll("%s played %s" % (player, repr(card)))
+        self.game.sendToAll(player.flushLog())
+        #if played:
+            #self.game.sendToAll("%s played %s" % (player, repr(card)))
 
     def playTreasures(self, player):
         """Play all treasure cards"""
@@ -275,14 +262,17 @@ class Menu:
                 player.play(card)
         message = "%s played %s" % (player, ', '.join(["%d %ss" % (x, y) for y, x in cardsPlayed.iteritems()]))
         self.game.sendToAll(message)
+        #self.game.sendToAll(player.flushLog())
+        player.flushLog()
 
     @defer.inlineCallbacks
     def buyCard(self, player):
         """Buy card"""
         cardName = yield player.userService.chooseCardForBuy()
         bought = yield player.buy(cardName)
+        self.game.sendToAll(player.flushLog())
         if bought:
-            self.game.sendToAll("%s bought %s" % (player, cardName))
+            self.game.sendToAll("%s buys a %s" % (player, cardName))
 
     def showHand(self, player):
         """Show hand"""
