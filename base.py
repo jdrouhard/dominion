@@ -2,7 +2,29 @@ from core import *
 from twisted.internet import defer
 
 class Adventurer(Action):
-    pass
+    cost = 6
+
+    def doAction(self):
+        treasureCardsFound = 0
+        revealedCards = []
+        while treasureCardsFound < 2 and (self.owner.drawdeck or self.owner.discard):
+            revealedCards = self.owner.draw(1, False)
+            if revealedCards:
+                revealedCard = revealedCards[0]
+                if isinstance(revealedCard, Treasure):
+                    #treasureCards.append(card)
+                    treasureCardsFound += 1
+                revealedCards.append(revealedCard)
+        discardedCards = [x for x in revealedCards if not isinstance(x, Treasure)]
+        treasureCards = [x for x in revealedCards if isinstance(x, Treasure)]
+        self.owner.discard.extend(discardedCards)
+        self.owner.hand.extend(treasureCards)
+        self.owner.addToLog("revealing %s." % (', '.join([repr(x) for x in revealedCards])))
+        if discardedCards:
+            self.owner.addToLog("discarding %s." % (', '.join([repr(x) for x in discardedCards])))
+        else:
+            self.owner.addToLog("discarding nothing.")
+        self.owner.addToLog("putting %s into the hand." % (', '.join([repr(x) for x in treasureCards])))
 
 class Bureaucrat(Attack):
     pass
