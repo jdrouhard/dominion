@@ -345,8 +345,8 @@ class GameManager:
     def setup(self, cards = None):
         for player in self.players:
             player.game = self
-            #player.deck = [self.cardFactory.newCard(x) for x in Counter({"Estate" : 3, "Copper" : 7}).elements()]
-            player.deck = [self.cardFactory.newCard(x) for x in ["Estate", "Copper", "Moat", "Witch", "Copper", "Gold", "Silver", "Militia"]]
+            player.deck = [self.cardFactory.newCard(x) for x in Counter({"Estate" : 3, "Copper" : 7}).elements()]
+            #player.deck = [self.cardFactory.newCard(x) for x in ["Estate", "Copper", "Moat", "Witch", "Copper", "Gold", "Silver", "Militia"]]
             for card in player.deck:
                 card.owner = player
             player.drawdeck[:] = player.deck[:]
