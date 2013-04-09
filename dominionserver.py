@@ -243,8 +243,8 @@ class Menu:
             yield self._options[option](player)
         except OptionCancelled:
             pass
-        except Exception as e:
-            print e
+        #except Exception as e:
+            #print e
 
     @defer.inlineCallbacks
     def playCard(self, player):

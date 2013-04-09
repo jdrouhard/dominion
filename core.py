@@ -76,7 +76,9 @@ class Attack(Action):
 
 class Reaction(Card):
     abstract = True
-    pass
+
+class AttackReaction(Reaction):
+    abstract = True
 
 class Curse(Victory):
     """Curse"""
@@ -341,7 +343,10 @@ class GameManager:
     def setup(self, cards = None):
         for player in self.players:
             player.game = self
-            player.deck = [self.cardFactory.newCard(x) for x in Counter({"Estate" : 3, "Copper" : 7}).elements()]
+            #player.deck = [self.cardFactory.newCard(x) for x in Counter({"Estate" : 3, "Copper" : 7}).elements()]
+            player.deck = [self.cardFactory.newCard(x) for x in ["Estate", "Copper", "Moat", "Bureaucrat", "Copper"]]
+            for card in player.deck:
+                card.owner = player
             player.drawdeck[:] = player.deck[:]
             random.shuffle(player.drawdeck)
             player.draw(5)
@@ -406,6 +411,30 @@ class GameManager:
         self.currentPlayer = self.playerCycle.next()
         self.currentPlayer.turnphase = "ACTION"
         self.currentPlayer.turn += 1
+
+    @defer.inlineCallbacks
+    def doAttack(self, player):
+        """Lets users perform reactions to attacks. Returns list of players who should
+        be affected by the attack."""
+        deferreds = []
+        potentialImmunePlayers = []
+        for otherPlayer in self.players:
+            if otherPlayer != player:
+                for card in otherPlayer.hand:
+                    if isinstance(card, AttackReaction):
+                        d = card.doReaction(player)
+                        deferreds.append(d)
+                        potentialImmunePlayers.append(otherPlayer)
+        result = yield defer.gatherResults(deferreds)
+        playersAffected = []
+        for i, otherPlayer in enumerate(potentialImmunePlayers):
+            if not result[i]:
+                playersAffected.append(otherPlayer)
+        for otherPlayer in self.players:
+            if otherPlayer not in potentialImmunePlayers and otherPlayer != player:
+                playersAffected.append(otherPlayer)
+        defer.returnValue(playersAffected)
+
 
     def end(self):
         if self.supplyPile["Province"] == 0:

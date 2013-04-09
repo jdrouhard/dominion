@@ -1,5 +1,6 @@
 from core import *
 from twisted.internet import defer
+from collections import defaultdict
 
 class Adventurer(Action):
     cost = 6
@@ -27,7 +28,36 @@ class Adventurer(Action):
         self.owner.addToLog("putting %s into the hand." % (', '.join([repr(x) for x in treasureCards])))
 
 class Bureaucrat(Attack):
-    pass
+    cost = 4
+
+    @defer.inlineCallbacks
+    def doAction(self):
+        silver = self.owner.game.getCardFromSupply("Silver")
+        if silver:
+            self.owner.gainToDiscard(silver)
+        self.owner.addToLog("gaining a Silver.")
+        #for player in self.owner.game.players:
+            #playerReactions = [x for x in player.hand if isinstance(x, Reaction)]
+        playersAffected = yield self.owner.game.doAttack(self.owner)
+        deferreds = []
+        for player in playersAffected:
+            player.userService.sendMessage("(Bureaucrat attack) Choose a Victory card to put back on your deck:")
+            d = player.userService.chooseCardFromHand(Victory)
+            deferreds.append(d)
+        results = yield defer.gatherResults(deferreds)
+        for i, player in enumerate(playersAffected):
+            card = results[i]
+            if card:
+                player.drawdeck.insert(0, card)
+                player.hand.remove(card)
+                self.owner.addToLog("%s reveals a %s and puts it back on their deck." % (player, repr(card)))
+            else:
+                cardCount = defaultdict(int)
+                for card in player.hand:
+                    cardCount[repr(card)] += 1
+                handStr = ', '.join(["%s: %d" % (name, count) for name, count in cardCount.iteritems()])
+                self.owner.addToLog("%s reveals their hand: %s" % (player, handStr))
+
 
 class Cellar(Action):
     cost = 2
@@ -187,7 +217,7 @@ class Mine(Action):
             self.owner.gainInHand(cardToGain)
             self.owner.addToLog("gaining a %s in hand." % repr(cardToGain))
 
-class Moat(Action, Reaction):
+class Moat(Action, AttackReaction):
     cost = 2
 
     def doAction(self):
@@ -195,9 +225,12 @@ class Moat(Action, Reaction):
         self.owner.addToLog("drawing %d cards." % len(drawnCards))
 
     @defer.inlineCallbacks
-    def doReaction(self):
-        """Return true if reaction makes player immune to attack"""
+    def doReaction(self, player):
+        """Return true if reaction makes this player immune to attack.
+        player argument is the player initiating the attack"""
         choice = yield self.owner.userService.getYesNoChoice("Reveal moat?")
+        if choice:
+            player.addToLog("%s reveals a Moat and is immune to the attack." % self.owner.name)
         defer.returnValue(choice)
 
 class Moneylender(Action):
