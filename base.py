@@ -36,8 +36,6 @@ class Bureaucrat(Attack):
         if silver:
             self.owner.gainToDiscard(silver)
         self.owner.addToLog("gaining a Silver.")
-        #for player in self.owner.game.players:
-            #playerReactions = [x for x in player.hand if isinstance(x, Reaction)]
         playersAffected = yield self.owner.game.doAttack(self.owner)
         deferreds = []
         for player in playersAffected:
@@ -196,7 +194,30 @@ class Market(Action):
         self.owner.addToLog("drawing %d card and getting +1 action, +1 buy, +$1." % len(drawnCards))
 
 class Militia(Attack):
-    pass
+    cost = 4
+
+    @defer.inlineCallbacks
+    def doAction(self):
+        self.owner.coins += 2
+        self.owner.addToLog("getting +$2.")
+
+        playersAffected = self.owner.game.doAttack(self.owner)
+        deferreds = []
+        players = []
+        for player in playersAffected:
+            if len(player.hand) > 3
+            d = player.userService.chooseCardsFromHand(Card, len(player.hand) - 3)
+            deferreds.append(d)
+            players.append(player)
+        result = yield defer.gatherResults(deferreds)
+        for i, player in enumerate(players):
+            cardList = result[i]
+            self.owner.addToLog("%s discards %d cards." % (player.name, len(cardList)))
+
+            #TODO: discarding can trigger a reaction
+            player.discard.extend(cardList)
+            for card in cardList:
+                player.hand.remove(card)
 
 class Mine(Action):
     cost = 5
@@ -268,10 +289,73 @@ class Smithy(Action):
         self.owner.addToLog("drawing %d cards." % len(drawnCards))
 
 class Spy(Attack):
-    pass
+    cost = 4
+
+    @defer.inlineCallbacks
+    def doAction(self):
+        drawnCards = self.owner.draw(1)
+        self.owner.actions += 1
+        self.owner.addToLog("drawing %d card and getting +1 action.")
+
+        drawnCards = self.owner.draw(1, False)
+        if drawnCards:
+            card = drawnCards[0]
+            choice = yield player.userService.getYesNoChoice("Discard your %s?" % repr(card))
+            if choice:
+                self.owner.discard.append(card)
+                self.owner.addToLog("revealing a %s and discarding it." % repr(card))
+            else:
+                self.owner.drawdeck.insert(0, card)
+                self.owner.addToLog("revealing a %s and keeping it." % repr(card))
+
+
+        playersAffected = yield self.owner.game.doAttack(self.owner)
+        for player in playersAffected:
+            drawnCards = player.draw(1, False)
+            if drawnCards:
+                card = drawnCards[0]
+                choice = yield player.userService.getYesNoChoice("Discard %s's %s?" % (player.name, repr(card)))
+                if choice:
+                    #TODO: discarding can trigger a reaction
+                    player.discard.append(card)
+                    self.owner.addToLog("making %s discard a %s." % (player.name, repr(card)))
+                else:
+                    player.drawdeck.insert(0, card)
+                    self.owner.addTolog("letting %s keep a %s." % (player.name, repr(card)))
 
 class Thief(Attack):
-    pass
+    cost = 4
+
+    @defer.inlineCallbacks
+    def doAction(self):
+        playersAffected = yield self.owner.game.doAttack(self.owner)
+        for player in playersAffected:
+            drawnCards = player.draw(2, False)
+            if drawnCards:
+                self.owner.addToLog("%s reveals %s" % (player.name, ', '.join([repr(x) for x in drawnCards])))
+                trashChoices = []
+                discard = []
+                for card in drawnCards:
+                    if isinstance(card, Treasure):
+                        trashChoices.append(card)
+                    else:
+                        discard.append(card)
+                self.owner.userService.sendMessage("Choose a treasure to trash from %s's revealed cards:" % player.name)
+                choice = yield self.owner.userService.getCardInstance(trashChoices)
+                self.owner.addToLog("%s trashes %s's %s" % (self.owner.name, player.name, repr(choice)))
+
+                gainCard = yield self.owner.userService.getYesNoChoice("Gain the %s?" % repr(choice))
+                if gainCard:
+                    player.deck.remove(choice)
+                    self.owner.gainToDiscard(choice)
+                    self.owner.addToLog("%s gains the trashed %s" % (self.owner.name, repr(choice)))
+                else:
+                    #TODO: don't call private method here
+                    player._trash(choice)
+
+                for card in discard:
+                    player.discard.append(card)
+                self.owner.addToLog("%s discards %s", (player.name, ', '.join([repr(x) for x in discard])))
 
 class ThroneRoom(Action):
     cost = 4
@@ -308,9 +392,20 @@ class Village(Action):
         self.owner.addToLog("getting +2 actions and drawing %d card." % len(drawnCards))
 
 class Witch(Attack):
+    cost = 5
+
+    @defer.inlineCallbacks
     def doAction(self):
-        # For each player, check attack rules and give curse if it's possible
-        pass
+        drawnCards = self.owner.draw(2)
+        self.addToLog("drawing %s cards." % len(drawnCards))
+
+        playersAffected = yield self.owner.game.doAttack(self.owner)
+        for player in playersAffected:
+            curse = self.owner.game.getCardFromSupply("Curse")
+            if curse:
+                gained = yield player.gainToDiscard(curse)
+                if gained:
+                    self.addToLog("%s gains a Curse." % player.name)
 
 class Woodcutter(Action):
     cost = 3

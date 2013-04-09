@@ -36,7 +36,7 @@ class CLIUserService:
         defer.returnValue(choice)
 
     @defer.inlineCallbacks
-    def chooseCardsFromHand(self, klass, number, ignore=None):
+    def chooseCardsFromHand(self, klass, number):
         #TODO: Replace with access to "UserService" object
         validChoices = [val for val in sorted(self.player.hand) if isinstance(val, klass) and val != ignore]
         choices = []

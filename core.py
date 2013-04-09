@@ -205,7 +205,7 @@ class Player:
             drawnCards = self.drawdeck[:number]
             if placeInHand:
                 self.hand.extend(drawnCards)
-            self.drawdeck = self.drawdeck[number:]
+            self.drawdeck[:] = self.drawdeck[number:]
             return drawnCards
 
     @defer.inlineCallbacks
@@ -278,12 +278,14 @@ class Player:
         shouldGain = yield self._gain(card)
         if shouldGain:
             self.hand.append(card)
+        defer.returnValue(shouldGain)
 
     @defer.inlineCallbacks
     def gainToDiscard(self, card):
         shouldGain = yield self._gain(card)
         if shouldGain:
             self.discard.append(card)
+        defer.returnValue(shouldGain)
 
     @defer.inlineCallbacks
     def _gain(self, card):
