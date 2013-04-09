@@ -65,9 +65,6 @@ class Victory(Card):
     victory = 0
     abstract = True
 
-    def getScore(self):
-        return self.victory
-
 class Action(Card):
     abstract = True
 
@@ -80,7 +77,7 @@ class Reaction(Card):
 class AttackReaction(Reaction):
     abstract = True
 
-class Curse(Victory):
+class Curse(Card):
     """Curse"""
     kingdom = False
     cost = 0
@@ -164,6 +161,9 @@ class IUserService(Interface):
 
     def noBuysRemain():
         """Notifies the user service object that the user is unable to do anything else"""
+
+class IllegalAction(Exception):
+    pass
 
 class Player:
     def __init__(self, name):
@@ -270,8 +270,8 @@ class Player:
     def updateScore(self):
         self.score = 0
         for card in self.deck:
-            if isinstance(card, Victory):
-                self.score += card.getScore()
+            if isinstance(card, Victory) or isinstance(card, Curse):
+                self.score += card.victory
 
     @defer.inlineCallbacks
     def gainInHand(self, card):
@@ -346,7 +346,7 @@ class GameManager:
         for player in self.players:
             player.game = self
             #player.deck = [self.cardFactory.newCard(x) for x in Counter({"Estate" : 3, "Copper" : 7}).elements()]
-            player.deck = [self.cardFactory.newCard(x) for x in ["Estate", "Copper", "Moat", "Bureaucrat", "Copper"]]
+            player.deck = [self.cardFactory.newCard(x) for x in ["Estate", "Copper", "Moat", "Witch", "Copper", "Gold", "Silver", "Militia"]]
             for card in player.deck:
                 card.owner = player
             player.drawdeck[:] = player.deck[:]
